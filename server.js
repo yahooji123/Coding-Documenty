@@ -25,11 +25,11 @@ app.use(helmet({
 app.use(compression()); // Responses ko compress karke fast banata hai
 
 // --- Basic Middleware ---
-app.set('view engine', 'ejs'); 
+app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.urlencoded({ extended: true })); 
-app.use(methodOverride('_method')); 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(methodOverride('_method'));
 
 // --- Session Configuration (MongoDB Store ke saath) ---
 app.set('trust proxy', 1); // Render/Heroku SSL ke liye zaroori hai
@@ -43,13 +43,16 @@ app.use(session({
         mongoUrl: process.env.MONGODB_URI,
         collectionName: 'sessions', // DB me is naam se collection banega
         ttl: 14 * 24 * 60 * 60, // 14 days
-        autoRemove: 'native' 
+        autoRemove: 'native'
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Production me true (HTTPS), Dev me false
-        httpOnly: true, // XSS se bachata hai
-        maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
+        secure: false,        // Render HTTPS issue fix
+        httpOnly: true,
+        sameSite: 'lax',      // Browser cookie block fix
+        maxAge: 1000 * 60 * 60 * 24 * 14
     }
+
+
 }));
 
 app.use(flash());
