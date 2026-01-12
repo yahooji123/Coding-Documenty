@@ -4,8 +4,11 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const methodOverride = require('method-override');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
 const Question = require('./models/Question');
 
 const app = express();
@@ -15,34 +18,37 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ Connected to MongoDB Atlas'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// --- Middleware Configuration ---
-app.set('view engine', 'ejs'); // EJS template engine use kar rahe hain
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public'))); // Public folder ko static bana rahe hain
-app.use(bodyParser.urlencoded({ extended: true })); // Form data parse karne ke liye
-/*
-app.use(methodOverride('_method')); // PUT/DELETE requests support karne ke liye
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'secret', // Session secure karne ke liye secret key
-    resave: false,
-    saveUninitialized: false
+// --- Security & Performance Middleware ---
+app.use(helmet({
+    contentSecurityPolicy: false, // EJS aur inline styles ke liye disable kiya hai, production me configure kare
 }));
-app.use(flash()); // Flash messages (error/success) dikhane ke liye
+app.use(compression()); // Responses ko compress karke fast banata hai
 
-*/
+// --- Basic Middleware ---
+app.set('view engine', 'ejs'); 
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.urlencoded({ extended: true })); 
+app.use(methodOverride('_method')); 
 
-
-app.set('trust proxy', 1);
+// --- Session Configuration (MongoDB Store ke saath) ---
+app.set('trust proxy', 1); // Render/Heroku SSL ke liye zaroori hai
 
 app.use(session({
     name: 'coding-documenty.sid',
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'fallbacksecret', // .env me hona chahiye
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        collectionName: 'sessions', // DB me is naam se collection banega
+        ttl: 14 * 24 * 60 * 60, // 14 days
+        autoRemove: 'native' 
+    }),
     cookie: {
-        secure: true,
-        httpOnly: true,
-        sameSite: 'none'
+        secure: process.env.NODE_ENV === 'production', // Production me true (HTTPS), Dev me false
+        httpOnly: true, // XSS se bachata hai
+        maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
     }
 }));
 
