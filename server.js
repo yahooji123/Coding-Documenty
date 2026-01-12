@@ -36,23 +36,21 @@ app.set('trust proxy', 1); // Render/Heroku SSL ke liye zaroori hai
 
 app.use(session({
     name: 'coding-documenty.sid',
-    secret: process.env.SESSION_SECRET || 'fallbacksecret', // .env me hona chahiye
+    secret: process.env.SESSION_SECRET || 'fallback_secret_must_change_in_prod',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: false, // Don't create session until something is stored
     store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URI,
         collectionName: 'sessions', // DB me is naam se collection banega
         ttl: 14 * 24 * 60 * 60, // 14 days
-        autoRemove: 'native'
+        autoRemove: 'native' 
     }),
     cookie: {
-        secure: false,        // Render HTTPS issue fix
-        httpOnly: true,
-        sameSite: 'lax',      // Browser cookie block fix
-        maxAge: 1000 * 60 * 60 * 24 * 14
+        secure: process.env.NODE_ENV === 'production', // Production me true (HTTPS)
+        httpOnly: true, // XSS se bachata hai
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Render sometimes needs none/secure for cross-site auth flows or iframes, but lax is standard. Sticking to lax for admin panels usually safer, but user had issues.
+        maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
     }
-
-
 }));
 
 app.use(flash());
