@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            height: 100vh;
+            overflow: hidden; /* Prevent body scroll, handle inside container */
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 95%;
+            height: 100vh; /* Full viewport height */
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+        }
+
+        /* --- Header Section (Fixed) --- */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px 20px 10px;
+            border-bottom: 2px solid #e1e4e8;
+            margin-bottom: 20px;
+            flex-shrink: 0; /* Keeps header fixed height */
+            background: #f4f7f6; /* Match body bg */
+            z-index: 10;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.8rem;
+        }
+        
+        .header-title p {
+            margin: 5px 0 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* --- Filter Section (Fixed) --- */
+        .filters-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .search-box {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #95a5a6;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .search-box input:focus {
+            border-color: #3498db;
+        }
+
+        .filter-select {
+            min-width: 200px;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background: white;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* --- List Section (Scrollable) --- */
+        .list-container {
+            flex: 1; /* Takes remaining height */
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Important for inner scrolling */
+            border: 1px solid #eee;
+        }
+
+        .list-header {
+            padding: 15px 25px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #eee;
+            display: grid;
+            grid-template-columns: 50px 3fr 1.5fr 1fr 1.5fr 1fr; /* Added Checkbox Col */
+            font-weight: 600;
+            color: #34495e;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .list-body {
+            overflow-y: auto; /* ENABLE SCROLLING HERE */
+            flex: 1;
+            padding: 0;
+        }
+
+        .question-row {
+            padding: 16px 25px;
+            border-bottom: 1px solid #f1f2f6;
+            display: grid;
+            grid-template-columns: 50px 3fr 1.5fr 1fr 1.5fr 1fr; /* Added Checkbox Col */
+            align-items: center;
+            transition: background 0.1s;
+        }
+
+        .question-row:hover {
+            background-color: #f8fcfd;
+        }
+
+        .question-row:last-child {
+            border-bottom: none;
+        }
+
+        .q-title {
+            font-weight: 500;
+            color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 15px;
+        }
+
+        .q-chapter .badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 10px;
+            border-radius: 20px; /* Pill shape */
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .q-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-edit { background: #fff3e0; color: #f57c00; }
+        .btn-edit:hover { background: #ffe0b2; }
+
+        .btn-delete { background: #ffebee; color: #d32f2f; }
+        .btn-delete:hover { background: #ffcdd2; }
+
+        /* Custom Scrollbar */
+        .list-body::-webkit-scrollbar {
+            width: 8px;
+        }
+        .list-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .list-body::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+        .list-body::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="header-title">
+                <h1>Admin Panel</h1>
+                <p>Overview • <strong id="totalCount"><%= questions.length %></strong> questions available</p>
+            </div>
+            <div class="header-actions">
+                <a href="/" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt"></i> Live Site</a>
+                
+                <!-- Delete Selected Button (Hidden by default) -->
+                <button type="submit" form="bulkDeleteForm" id="btnDeleteSelected" class="btn-danger" style="display:none;">
+                    <i class="fas fa-trash"></i> Delete Selected
+                </button>
+
+                <!-- Delete All Button -->
+                <form action="/admin/delete-all" method="POST" onsubmit="return confirm('WARNING: This will delete ALL questions permanently! Are you sure?');" style="display:inline;">
+                    <button type="submit" class="btn-danger" style="background: #c0392b;">
+                        <i class="fas fa-bomb"></i> Delete All
+                    </button>
+                </form>
+
+                <a href="/admin/logout" class="btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a href="/admin/add" class="btn-primary" style="background:#27ae60;"><i class="fas fa-plus"></i> New Question</a>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="adminSearch" placeholder="Type to search questions..." onkeyup="filterQuestions()" autofocus>
+            </div>
+            <select id="chapterFilter" class="filter-select" onchange="filterQuestions()">
+                <option value="all">📁 All Chapters</option>
+                <% 
+                   const chapters = [...new Set(questions.map(q => q.chapter))].sort();
+                   chapters.forEach(c => { 
+                %>
+                    <option value="<%= c %>"><%= c %></option>
+                <% }); %>
+            </select>
+        </div>
+
+        <!-- Scrollable List Area -->
+        <div class="list-container">
+            <!-- Form for Bulk Delete -->
+            <form id="bulkDeleteForm" action="/admin/delete-selected" method="POST" onsubmit="return confirm('Delete selected questions?');">
+            
+            <div class="list-header">
+                <div><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></div>
+                <div>Question Title</div>
+                <div>Chapter</div>
+                <div>Difficulty</div>
+                <div>Created At</div>
+                <div>Actions</div>
+            </div>
+            
+            <div class="list-body" id="questionsList">
+                <% if (questions.length === 0) { %>
+                    <div style="padding: 60px; text-align: center; color: #95a5a6;">
+                        <i class="fas fa-box-open" style="font-size: 50px; margin-bottom: 20px; opacity: 0.5;"></i>
+                        <h3>No questions yet.</h3>
+                        <p>Questions you add will appear here.</p>
+                    </div>
+                <% } %>
+
+
+                <% questions.forEach(q => { %>
+                    <div class="question-row filter-item" data-chapter="<%= q.chapter %>" data-title="<%= q.title.toLowerCase() %>">
+                        <div>
+                            <input type="checkbox" name="ids" value="<%= q._id %>" class="question-checkbox" onclick="updateDeleteButton()">
+                        </div>
+                        <div class="q-title" title="<%= q.title %>"><%= q.title %></div>
+                        <div class="q-chapter"><span class="badge"><%= q.chapter %></span></div>
+                        <div class="q-diff">
+                            <% if(q.difficulty === 'Easy') { %>
+                                <span style="color:#27ae60; font-weight:600;"><%= q.difficulty || 'Medium' %></span>
+                            <% } else if (q.difficulty === 'Hard') { %>
+                                <span style="color:#c0392b; font-weight:600;"><%= q.difficulty || 'Medium' %></span>
+                            <% } else { %>
+                                <span style="color:#f39c12; font-weight:600;"><%= q.difficulty || 'Medium' %></span>
+                            <% } %>
+                        </div>
+                        <div class="q-date"><i class="far fa-calendar-alt"></i> <%= new Date(q.createdAt).toLocaleDateString() %></div>
+                        <div class="action-buttons">
+                            <a href="/admin/edit/<%= q._id %>" class="btn-icon btn-edit" title="Edit Question">
+                                <i class="fas fa-pencil-alt"></i>
+                            </a>
+                            <form action="/admin/delete/<%= q._id %>?_method=DELETE" method="POST" onsubmit="return confirm('Delete this question? This cannot be undone.');" style="margin:0;">
+                                <button type="submit" class="btn-icon btn-delete" title="Delete Question">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function filterQuestions() {
+            const searchInput = document.getElementById('adminSearch').value.toLowerCase();
+            const chapterFilter = document.getElementById('chapterFilter').value;
+            const rows = document.querySelectorAll('.question-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const title = row.querySelector('.q-title').textContent.toLowerCase();
+                const chapter = row.getAttribute('data-chapter');
+                
+                const matchesSearch = title.includes(searchInput);
+                const matchesChapter = chapterFilter === 'all' || chapter === chapterFilter;
+
+                if (matchesSearch && matchesChapter) {
+                    row.style.display = 'grid';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('totalCount').innerText = visibleCount;
+        }
+
+        // --- Bulk Action Logic ---
+        function toggleSelectAll() {
+            const master = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.question-checkbox');
+            checkboxes.forEach(cb => {
+                // If the parent row is hidden (filtered out), don't select it? 
+                // Typically you only select what is visible.
+                const row = cb.closest('.question-row');
+                if (row.style.display !== 'none') {
+                    cb.checked = master.checked;
+                }
+            });
+            updateDeleteButton();
+        }
+
+        function updateDeleteButton() {
+            const checkboxes = document.querySelectorAll('.question-checkbox:checked');
+            const btn = document.getElementById('btnDeleteSelected');
+            
+            if (checkboxes.length > 0) {
+                btn.style.display = 'inline-block';
+                btn.innerHTML = `<i class="fas fa-trash"></i> Delete Selected (${checkboxes.length})`;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

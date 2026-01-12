@@ -1,0 +1,22 @@
+<header class="top-bar">
+    <div class="left-controls">
+        <button id="toggleSidebar" class="mobile-only">☰</button>
+        <div class="breadcrumbs">
+            <% if (currentQuestion) { %>
+                <span class="crumb-chapter"><%= currentQuestion.chapter %></span> 
+                <span class="crumb-separator">/</span> 
+                <span class="crumb-title"><%= currentQuestion.title %></span>
+                <% if(currentQuestion.difficulty) { %>
+                    <span class="badge badge-<%= currentQuestion.difficulty.toLowerCase() %>"><%= currentQuestion.difficulty %></span>
+                <% } %>
+            <% } else { %>
+                Home
+            <% } %>
+        </div>
+    </div>
+    <div class="right-controls">
+        <button id="fontDecrease" class="icon-btn" title="Decrease Font Size">A-</button>
+        <button id="fontIncrease" class="icon-btn" title="Increase Font Size">A+</button>
+        <button id="themeToggle" class="icon-btn" title="Toggle Dark/Light Mode">🌙</button>
+    </div>
+</header>

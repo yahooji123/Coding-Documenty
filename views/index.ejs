@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/head') %>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <%- include('partials/sidebar') %>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <%- include('partials/topbar') %>
+
+            <div class="content-wrapper">
+                <% if (welcome) { %>
+                    <div class="welcome-screen">
+                        <div class="welcome-icon">🚀</div>
+                        <h2>DS Algo Hub</h2>
+                        <p>Explore curated Data Structures and Algorithms problems.</p>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3><%= Object.values(locals.sidebarChapters || {}).reduce((a,c) => a + c.length, 0) %></h3>
+                                <p>Total Questions</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3><%= Object.keys(locals.sidebarChapters || {}).length %></h3>
+                                <p>Topics covered</p>
+                            </div>
+                        </div>
+
+                        <% if (locals.isAdmin) { %>
+                            <br>
+                            <a href="/admin/dashboard" class="btn-primary">Go to Dashboard</a>
+                        <% } %>
+                    </div>
+                <% } else if (currentQuestion) { %>
+                    <div class="problem-view">
+                        <h1 class="problem-title"><%= currentQuestion.title %></h1>
+                        
+                        <div class="code-section">
+                            <div class="section-header">
+                                <h3><span class="icon">💻</span> <%= currentQuestion.language === 'cpp' ? 'C++' : currentQuestion.language.toUpperCase() %> Code</h3>
+                                <div class="action-buttons">
+                                    <% if (locals.isAdmin) { %>
+                                        <a href="/admin/edit/<%= currentQuestion._id %>" class="action-btn">Edit ✏️</a>
+                                    <% } %>
+                                    <button class="action-btn" id="copyBtn" title="Copy Code">📋 Copy</button>
+                                </div>
+                            </div>
+                            <pre><code id="codeBlock" class="language-<%= currentQuestion.language %>"><%= currentQuestion.code %></code></pre>
+                        </div>
+
+                        <div class="output-section">
+                            <div class="section-header">
+                                <h3><span class="icon">⚡</span> Expected Output</h3>
+                            </div>
+                            <div class="terminal-window">
+                                <div class="terminal-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                                <pre id="outputBlock" class="terminal-body"><%= currentQuestion.output %></pre>
+                            </div>
+                            <% if (currentQuestion.explanation) { %>
+                                <div class="explanation-box">
+                                    <h3>💡 Explanation</h3>
+                                    <p><%= currentQuestion.explanation %></p>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/site.js"></script>
+</body>
+</html>

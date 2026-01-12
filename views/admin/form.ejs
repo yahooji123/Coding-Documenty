@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof question !== 'undefined' ? 'Edit' : 'Add' %> Question</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            overflow-y: auto; /* Allow scrolling */
+        }
+        .form-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            /* Ensure container doesn't get cut off */
+            position: relative;
+        }
+        .form-header {
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        textarea.form-control {
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="form-header">
+            <h2><%= typeof question !== 'undefined' ? 'Edit' : 'Add New' %> Question</h2>
+        </div>
+
+        <form action="<%= typeof question !== 'undefined' ? '/admin/edit/' + question._id + '?_method=PUT' : '/admin/add' %>" method="POST">
+            <div class="form-group">
+                <label>Chapter Name</label>
+                <input type="text" name="chapter" class="form-control" value="<%= typeof question !== 'undefined' ? question.chapter : '' %>" required list="chapter-list">
+                <datalist id="chapter-list">
+                    <!-- Common chapters could be populated here dynamically if we had the list -->
+                    <option value="Array">
+                    <option value="Linked Lists">
+                    <option value="Strings">
+                    <option value="Stacks">
+                    <option value="DP">
+                </datalist>
+            </div>
+
+            <div class="form-group">
+                <label>Question Title</label>
+                <input type="text" name="title" class="form-control" value="<%= typeof question !== 'undefined' ? question.title : '' %>" required>
+            </div>
+            
+            <div class="form-row" style="display:flex; gap:20px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Programming Language</label>
+                    <select name="language" class="form-control">
+                        <option value="cpp" <%= (typeof question !== 'undefined' && question.language === 'cpp') ? 'selected' : '' %>>C++</option>
+                        <option value="java" <%= (typeof question !== 'undefined' && question.language === 'java') ? 'selected' : '' %>>Java</option>
+                        <option value="python" <%= (typeof question !== 'undefined' && question.language === 'python') ? 'selected' : '' %>>Python</option>
+                        <option value="javascript" <%= (typeof question !== 'undefined' && question.language === 'javascript') ? 'selected' : '' %>>JavaScript</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Difficulty</label>
+                    <select name="difficulty" class="form-control">
+                        <option value="Easy" <%= (typeof question !== 'undefined' && question.difficulty === 'Easy') ? 'selected' : '' %>>Easy</option>
+                        <option value="Medium" <%= (typeof question === 'undefined' || question.difficulty === 'Medium') ? 'selected' : '' %>>Medium</option>
+                        <option value="Hard" <%= (typeof question !== 'undefined' && question.difficulty === 'Hard') ? 'selected' : '' %>>Hard</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Code</label>
+                <textarea name="code" class="form-control" required><%= typeof question !== 'undefined' ? question.code : '' %></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Expected Output (Optional)</label>
+                <textarea name="output" class="form-control" style="min-height: 100px;"><%= typeof question !== 'undefined' ? question.output : '' %></textarea>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <button type="submit" class="btn-primary">Save Question</button>
+                <a href="/admin/dashboard" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

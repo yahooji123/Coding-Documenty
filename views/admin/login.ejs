@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        }
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h2 style="margin-bottom: 20px; color: #333;">Admin Login</h2>
+            <% if (error) { %>
+                <div style="color: red; margin-bottom: 15px;"><%= error %></div>
+            <% } %>
+            <form action="/admin/login" method="POST">
+                <div class="form-group">
+                    <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">Login</button>
+            </form>
+            <div style="margin-top: 20px;">
+                <a href="/" style="text-decoration: none; color: #666;">&larr; Back to Site</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

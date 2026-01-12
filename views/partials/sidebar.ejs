@@ -1,0 +1,40 @@
+<aside class="sidebar">
+    <a href="/" style="text-decoration:none;">
+        <div class="sidebar-header">
+            <h1>DSA <span>Hub</span></h1>
+            <input type="text" id="searchInput" placeholder="Search questions...">
+        </div>
+    </a>
+    <div class="sidebar-content">
+        <% if (locals.sidebarChapters) { %>
+            <% Object.keys(sidebarChapters).forEach(chapterName => { %>
+                <div class="chapter-item <%= (currentQuestion && currentQuestion.chapter === chapterName) ? 'active' : '' %>">
+                    <div class="chapter-title">
+                        <%= chapterName %> <span class="arrow">▼</span>
+                    </div>
+                    <div class="file-list">
+                        <% sidebarChapters[chapterName].forEach(q => { %>
+                            <a href="/question/<%= q._id %>" class="file-item <%= (currentQuestion && currentQuestion._id.toString() === q._id.toString()) ? 'selected' : '' %>">
+                                <%= q.title %>
+                                <% if (q.difficulty === 'Easy') { %>
+                                    <span class="badge badge-success dot">•</span>
+                                <% } else if (q.difficulty === 'Hard') { %>
+                                    <span class="badge badge-danger dot">•</span>
+                                <% } %>
+                            </a>
+                        <% }); %>
+                    </div>
+                </div>
+            <% }); %>
+        <% } %>
+    </div>
+    
+    <div class="sidebar-footer">
+        <% if (locals.isAdmin) { %>
+            <a href="/admin/dashboard" class="action-btn">Admin Dashboard</a>
+            <a href="/admin/logout" class="action-btn btn-danger-outline">Logout</a>
+        <% } else { %>
+            <a href="/admin/login" class="action-btn btn-primary-outline">Admin Login</a>
+        <% } %>
+    </div>
+</aside>
