@@ -20,6 +20,7 @@ app.set('view engine', 'ejs'); // EJS template engine use kar rahe hain
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public'))); // Public folder ko static bana rahe hain
 app.use(bodyParser.urlencoded({ extended: true })); // Form data parse karne ke liye
+/*
 app.use(methodOverride('_method')); // PUT/DELETE requests support karne ke liye
 app.use(session({
     secret: process.env.SESSION_SECRET || 'secret', // Session secure karne ke liye secret key
@@ -28,13 +29,32 @@ app.use(session({
 }));
 app.use(flash()); // Flash messages (error/success) dikhane ke liye
 
+*/
+
+
+app.set('trust proxy', 1);
+
+app.use(session({
+    name: 'coding-documenty.sid',
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: true,
+        httpOnly: true,
+        sameSite: 'none'
+    }
+}));
+
+app.use(flash());
+
 // --- Global Middleware (Har request pe ye chalega) ---
 app.use(async (req, res, next) => {
     try {
         // Sidebar Data fetch kar rahe hain (Har page pe sidebar chahiye)
         const allQuestions = await Question.find({}).sort({ chapter: 1, title: 1 });
         const chapters = {};
-        
+
         // Questions ko chapters ke hisaab se group kar rahe hain
         allQuestions.forEach(q => {
             if (!chapters[q.chapter]) {
@@ -42,7 +62,7 @@ app.use(async (req, res, next) => {
             }
             chapters[q.chapter].push(q);
         });
-        
+
         // Data ko locals mein daal rahe hain taaki har view mein access kar sakein
         res.locals.sidebarChapters = chapters;
         res.locals.currentPath = req.path;
