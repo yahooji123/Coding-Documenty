@@ -13,88 +13,76 @@ const Question = require('./models/Question');
 
 const app = express();
 
-// --- Database Connection (DB se connect kar rahe hain) ---
+const isProduction = process.env.NODE_ENV === 'production';
+
+// --- Database Connection ---
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ Connected to MongoDB Atlas'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// --- Security & Performance Middleware ---
-app.use(helmet({
-    contentSecurityPolicy: false, // EJS aur inline styles ke liye disable kiya hai, production me configure kare
-}));
-app.use(compression()); // Responses ko compress karke fast banata hai
+// --- Security & Performance ---
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(compression());
 
-// --- Basic Middleware ---
+// --- Basic Config ---
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 
-// --- Session Configuration (MongoDB Store ke saath) ---
-app.set('trust proxy', 1); // Render/Heroku SSL ke liye zaroori hai
+// --- Render/HTTPS Session Configuration ---
+app.set('trust proxy', 1); // Required for secure cookies on Render
 
 app.use(session({
     name: 'coding-documenty.sid',
-    secret: process.env.SESSION_SECRET || 'fallback_secret_must_change_in_prod',
+    secret: process.env.SESSION_SECRET || 'dev_secret_key',
     resave: false,
-    saveUninitialized: false, // Don't create session until something is stored
+    saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions', // DB me is naam se collection banega
+        collectionName: 'sessions',
         ttl: 14 * 24 * 60 * 60, // 14 days
-        autoRemove: 'native' 
+        autoRemove: 'native'
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Production me true (HTTPS)
-        httpOnly: true, // XSS se bachata hai
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Render sometimes needs none/secure for cross-site auth flows or iframes, but lax is standard. Sticking to lax for admin panels usually safer, but user had issues.
+        secure: isProduction, // true on Render (HTTPS)
+        httpOnly: true,
+        sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site on some HTTPS setups
         maxAge: 1000 * 60 * 60 * 24 * 14 // 14 days
     }
 }));
 
 app.use(flash());
 
-// --- Global Middleware (Har request pe ye chalega) ---
+// --- Global Variables ---
 app.use(async (req, res, next) => {
     try {
-        // Sidebar Data fetch kar rahe hain (Har page pe sidebar chahiye)
         const allQuestions = await Question.find({}).sort({ chapter: 1, title: 1 });
         const chapters = {};
-
-        // Questions ko chapters ke hisaab se group kar rahe hain
         allQuestions.forEach(q => {
-            if (!chapters[q.chapter]) {
-                chapters[q.chapter] = [];
-            }
+            if (!chapters[q.chapter]) chapters[q.chapter] = [];
             chapters[q.chapter].push(q);
         });
 
-        // Data ko locals mein daal rahe hain taaki har view mein access kar sakein
         res.locals.sidebarChapters = chapters;
         res.locals.currentPath = req.path;
-        res.locals.isAdmin = req.session.isAdmin || false; // Admin check
-        res.locals.success = req.flash('success'); // Success messages
-        res.locals.error = req.flash('error'); // Error messages
+        res.locals.isAdmin = !!req.session.isAdmin; // Boolean conversion
+        res.locals.success = req.flash('success');
+        res.locals.error = req.flash('error');
         next();
     } catch (err) {
-        console.error("Sidebar Data Error:", err);
+        console.error("Sidebar Error:", err);
         next();
     }
 });
 
-// --- Routes (Raste define kar rahe hain) ---
-const indexRoutes = require('./routes/index');
-const adminRoutes = require('./routes/admin');
+// --- Routes ---
+app.use('/', require('./routes/index'));
+app.use('/admin', require('./routes/admin'));
 
-app.use('/', indexRoutes); // Home routes
-app.use('/admin', adminRoutes); // Admin routes mounted at /admin
-
-// --- Server Start ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌍 Open http://localhost:${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
-
-console.log("🔥 RENDER USING LATEST CODE - EMAIL LOGIN VERSION 🔥");
