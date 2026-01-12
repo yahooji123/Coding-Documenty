@@ -96,3 +96,5 @@ app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🌍 Open http://localhost:${PORT}`);
 });
+
+console.log("🔥 RENDER USING LATEST CODE - EMAIL LOGIN VERSION 🔥");
