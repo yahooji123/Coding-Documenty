@@ -37,8 +37,17 @@ router.post('/login', async (req, res) => {
 
         req.session.isAdmin = true;
         req.session.adminId = admin._id;
-        req.flash('success', 'Welcome Admin!');
-        res.redirect('/admin/dashboard');
+        
+        // Explicitly save session before redirect (fixes race condition on some stores)
+        req.session.save(err => {
+            if (err) {
+                console.error(err);
+                req.flash('error', 'Session error');
+                return res.redirect('/admin/login');
+            }
+            req.flash('success', 'Welcome Admin!');
+            res.redirect('/admin/dashboard');
+        });
     } catch (err) {
         console.error(err);
         req.flash('error', 'Login Error');
