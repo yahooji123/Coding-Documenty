@@ -1,22 +1,24 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// --- Admin Schema Definition (Admin ka data structure) ---
 const adminSchema = new mongoose.Schema({
-    email: {
+    username: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        trim: true
     },
     password: {
         type: String,
         required: true
     },
-    resetPasswordToken: String,
-    resetPasswordExpires: Date
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
 });
 
-// --- Saving se pehle password hash karna ---
+// Hash password before saving
 adminSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
     try {
@@ -28,7 +30,7 @@ adminSchema.pre('save', async function(next) {
     }
 });
 
-// --- Password Verification Method ---
+// Method to compare password
 adminSchema.methods.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };

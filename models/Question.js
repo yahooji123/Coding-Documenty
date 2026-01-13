@@ -1,59 +1,46 @@
 const mongoose = require('mongoose');
 
-// Question Schema define kar rahe hain
 const questionSchema = new mongoose.Schema({
-    // Chapter ka naam (e.g., Array, String)
     chapter: {
         type: String,
         required: true,
-        index: true // Search optimize karne ke liye
+        trim: true
     },
-    // Question ka title
     title: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
-    // Solution code
+    language: {
+        type: String,
+        required: true,
+        enum: ['cpp', 'java', 'python', 'javascript'],
+        default: 'cpp'
+    },
     code: {
         type: String,
         required: true
     },
-    // Output kya aayega
     output: {
         type: String,
-        default: 'Output not specified.'
+        default: ''
     },
-    // Difficulty level (Easy, Medium, Hard)
     difficulty: {
         type: String,
         enum: ['Easy', 'Medium', 'Hard'],
         default: 'Medium'
     },
-    // Tags for searching
-    tags: {
-        type: [String],
-        default: []
-    },
-    // Programming language (default C++)
-    language: {
-        type: String,
-        default: 'cpp'
-    },
-    // Explanation of solution
     explanation: {
         type: String,
         default: ''
     },
-    // File name for download purposes
-    fileName: {
-        type: String
-    },
-    // Creation time
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-// Model export kar rahe hain taaki baaki jagah use kar sakein
+// Index for sidebar grouping and sorting
+questionSchema.index({ chapter: 1, title: 1 });
+
 module.exports = mongoose.model('Question', questionSchema);

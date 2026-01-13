@@ -1,176 +1,91 @@
 const express = require('express');
 const router = express.Router();
-const Question = require('../models/Question');
 const Admin = require('../models/Admin');
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const Question = require('../models/Question');
 
-// --- Middleware: Check Authentication (Login Check) ---
-const checkAuth = (req, res, next) => {
-    if (req.session.isAdmin) return next();
-    req.flash('error', 'Please login to access admin panel');
+// =========================================================
+// MIDDLEWARE: Check Authentication
+// =========================================================
+const isAuthenticated = (req, res, next) => {
+    if (req.session.isAdmin) {
+        return next();
+    }
+    req.flash('error', 'Please log in to view this resource');
     res.redirect('/admin/login');
 };
 
-// --- Login Routes ---
+// =========================================================
+// 1. AUTH ROUTES
+// =========================================================
 
-// Login Page Display
+// GET Login Page
 router.get('/login', (req, res) => {
-    res.render('admin/login', { error: req.flash('error'), success: req.flash('success') });
+    if (req.session.isAdmin) {
+        return res.redirect('/admin/dashboard');
+    }
+    res.render('admin/login', { title: 'Admin Login' });
 });
 
-// Login Process (DB Verify)
+// POST Login
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
+    
     try {
-        const admin = await Admin.findOne({ email });
+        const admin = await Admin.findOne({ username });
+        
         if (!admin) {
-            req.flash('error', 'Invalid Email or Password');
+            req.flash('error', 'Invalid username or password');
             return res.redirect('/admin/login');
         }
 
         const isMatch = await admin.comparePassword(password);
         if (!isMatch) {
-            req.flash('error', 'Invalid Email or Password');
+            req.flash('error', 'Invalid username or password');
             return res.redirect('/admin/login');
         }
 
+        // --- SESSION FIX START ---
+        // Explicitly setting session data
         req.session.isAdmin = true;
-        req.session.adminId = admin._id;
+        req.session.adminId = admin._id; 
         
-        // Explicitly save session before redirect (fixes race condition on some stores)
-        req.session.save(err => {
+        // Force save to prevent race conditions on redirect
+        req.session.save((err) => {
             if (err) {
-                console.error(err);
-                req.flash('error', 'Session error');
+                console.error("Session Save Error:", err);
+                req.flash('error', 'Session error. Please try again.');
                 return res.redirect('/admin/login');
             }
-            req.flash('success', 'Welcome Admin!');
             res.redirect('/admin/dashboard');
         });
+        // --- SESSION FIX END ---
+
     } catch (err) {
         console.error(err);
-        req.flash('error', 'Login Error');
+        req.flash('error', 'Server error');
         res.redirect('/admin/login');
     }
 });
 
-// Logout
+// GET Logout
 router.get('/logout', (req, res) => {
-    req.session.destroy(); 
-    res.redirect('/admin/login');
-});
-
-// --- Forgot Password Routes ---
-
-router.get('/forgot-password', (req, res) => {
-    res.render('admin/forgot-password', { error: req.flash('error'), success: req.flash('success') });
-});
-
-router.post('/forgot-password', async (req, res) => {
-    try {
-        const admin = await Admin.findOne({ email: req.body.email });
-        if (!admin) {
-            req.flash('error', 'No account with that email address exists.');
-            return res.redirect('/admin/forgot-password');
-        }
-
-        const token = crypto.randomBytes(20).toString('hex');
-
-        admin.resetPasswordToken = token;
-        admin.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-
-        await admin.save();
-
-        const transporter = nodemailer.createTransport({
-            service: 'gmail', // Ya process.env.EMAIL_SERVICE
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
-
-        const mailOptions = {
-            to: admin.email,
-            from: process.env.EMAIL_USER,
-            subject: 'Admin Password Reset',
-            text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
-                'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                'http://' + req.headers.host + '/admin/reset-password/' + token + '\n\n' +
-                'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-        };
-
-        await transporter.sendMail(mailOptions);
-        req.flash('success', 'An e-mail has been sent to ' + admin.email + ' with further instructions.');
-        res.redirect('/admin/forgot-password');
-
-    } catch (err) {
-        console.error(err);
-        req.flash('error', 'Error sending email');
-        res.redirect('/admin/forgot-password');
-    }
-});
-
-router.get('/reset-password/:token', async (req, res) => {
-    try {
-        const admin = await Admin.findOne({ 
-            resetPasswordToken: req.params.token, 
-            resetPasswordExpires: { $gt: Date.now() } 
-        });
-
-        if (!admin) {
-            req.flash('error', 'Password reset token is invalid or has expired.');
-            return res.redirect('/admin/forgot-password');
-        }
-        res.render('admin/reset-password', { token: req.params.token, error: req.flash('error') });
-    } catch (err) {
-        res.redirect('/admin/forgot-password');
-    }
-});
-
-router.post('/reset-password/:token', async (req, res) => {
-    try {
-        const admin = await Admin.findOne({ 
-            resetPasswordToken: req.params.token, 
-            resetPasswordExpires: { $gt: Date.now() } 
-        });
-
-        if (!admin) {
-            req.flash('error', 'Password reset token is invalid or has expired.');
-            return res.redirect('back');
-        }
-
-        if (req.body.password !== req.body.confirm) {
-            req.flash('error', 'Passwords do not match.');
-            return res.redirect('back');
-        }
-
-        admin.password = req.body.password;
-        admin.resetPasswordToken = undefined;
-        admin.resetPasswordExpires = undefined;
-
-        await admin.save(); // Model ka pre-save hash karega
-        
-        req.flash('success', 'Success! Your password has been changed.');
+    req.session.destroy((err) => {
+        if (err) console.error("Logout Error:", err);
         res.redirect('/admin/login');
-    } catch (err) {
-        console.error(err);
-        req.flash('error', 'Error resetting password');
-        res.redirect('back');
-    }
+    });
 });
 
-// --- Dashboard Routes ---
+// =========================================================
+// 2. DASHBOARD & CRUD
+// =========================================================
 
-// Dashboard Display (Check Login first)
-router.get('/dashboard', checkAuth, async (req, res) => {
+// GET Dashboard
+router.get('/dashboard', isAuthenticated, async (req, res) => {
     try {
-        // Saare questions fetch kar rahe hain, latest pehle
         const questions = await Question.find({}).sort({ createdAt: -1 });
         res.render('admin/dashboard', { 
-            questions,
-            success: req.flash('success'),
-            error: req.flash('error')
+            title: 'Admin Dashboard',
+            questions: questions
         });
     } catch (err) {
         console.error(err);
@@ -178,79 +93,76 @@ router.get('/dashboard', checkAuth, async (req, res) => {
     }
 });
 
-// --- CRUD Operations (Add, Edit, Delete) ---
-
-// Add Question Form Show
-router.get('/add', checkAuth, (req, res) => {
+// GET Add Page
+router.get('/add', isAuthenticated, (req, res) => {
     res.render('admin/form', { 
-        question: undefined,
-        error: req.flash('error')
-    }); 
+        title: 'Add New Question',
+        action: '/admin/add',
+        question: {} 
+    });
 });
 
-// Create New Question (Database mein save)
-router.post('/add', checkAuth, async (req, res) => {
-    const { chapter, title, code, output, language, difficulty } = req.body;
+// POST Add Question
+router.post('/add', isAuthenticated, async (req, res) => {
     try {
-        await Question.create({
-            chapter,
-            title,
-            code,
-            output,
-            language,
-            difficulty: difficulty || 'Medium',
-            fileName: `${title}.${language === 'cpp' ? 'cpp' : 'txt'}`
+        const newQuestion = new Question(req.body);
+        await newQuestion.save();
+        req.flash('success', 'Question added successfully');
+        
+        req.session.save(() => {
+            res.redirect('/admin/dashboard');
         });
-        req.flash('success', 'Question added successfully!');
-        res.redirect('/admin/dashboard');
     } catch (err) {
         console.error(err);
-        req.flash('error', 'Error adding question.');
+        req.flash('error', 'Error adding question');
         res.redirect('/admin/add');
     }
 });
 
-// Edit Question Form Show
-router.get('/edit/:id', checkAuth, async (req, res) => {
+// GET Edit Page
+router.get('/edit/:id', isAuthenticated, async (req, res) => {
     try {
         const question = await Question.findById(req.params.id);
+        if (!question) {
+            req.flash('error', 'Question not found');
+            return res.redirect('/admin/dashboard');
+        }
         res.render('admin/form', { 
-            question,
-            error: req.flash('error') 
+            title: 'Edit Question',
+            action: `/admin/edit/${question._id}?_method=PUT`,
+            question: question 
         });
     } catch (err) {
-        req.flash('error', 'Question not found');
+        console.error(err);
         res.redirect('/admin/dashboard');
     }
 });
 
-// Update Existing Question
-router.put('/edit/:id', checkAuth, async (req, res) => {
-    const { chapter, title, code, output, language, difficulty } = req.body;
+// PUT Update Question
+router.put('/edit/:id', isAuthenticated, async (req, res) => {
     try {
-        await Question.findByIdAndUpdate(req.params.id, {
-            chapter,
-            title,
-            code,
-            output,
-            language,
-            difficulty
+        await Question.findByIdAndUpdate(req.params.id, req.body);
+        req.flash('success', 'Question updated successfully');
+        
+        req.session.save(() => {
+            res.redirect('/admin/dashboard');
         });
-        req.flash('success', 'Question updated successfully!');
-        res.redirect('/admin/dashboard');
     } catch (err) {
         console.error(err);
         req.flash('error', 'Error updating question');
-        res.redirect('/admin/dashboard');
+        res.redirect(`/admin/edit/${req.params.id}`);
     }
 });
 
-// Delete Single Question
-router.delete('/delete/:id', checkAuth, async (req, res) => {
+// DELETE Question
+router.delete('/delete/:id', isAuthenticated, async (req, res) => {
     try {
         await Question.findByIdAndDelete(req.params.id);
-        req.flash('success', 'Question deleted.');
-        res.redirect('/admin/dashboard');
+        req.flash('success', 'Question deleted successfully');
+        
+        req.session.save(() => {
+            res.redirect('/admin/dashboard');
+        });
     } catch (err) {
         console.error(err);
         req.flash('error', 'Error deleting question');
@@ -258,37 +170,42 @@ router.delete('/delete/:id', checkAuth, async (req, res) => {
     }
 });
 
-// Delete Selected Questions (Bulk Delete)
-router.post('/delete-selected', checkAuth, async (req, res) => {
-    const { ids } = req.body;
-    if (!ids || ids.length === 0) {
-        req.flash('error', 'No questions selected.');
-        return res.redirect('/admin/dashboard');
-    }
-
+// =========================================================
+// 3. SPECIAL: FIRST ADMIN SETUP (Auto-disable after use)
+// =========================================================
+router.get('/register-first-admin', async (req, res) => {
     try {
-        // ids can be a string (single) or array (multiple). Ensure array.
-        const idArray = Array.isArray(ids) ? ids : [ids];
-        await Question.deleteMany({ _id: { $in: idArray } });
-        req.flash('success', `Deleted ${idArray.length} questions.`);
-        res.redirect('/admin/dashboard');
+        const count = await Admin.countDocuments();
+        if (count > 0) {
+            req.flash('error', 'Admin already exists. Please login.');
+            return res.redirect('/admin/login');
+        }
+        // If no admin, allow quick create
+        res.send(`
+            <h1>Create First Admin</h1>
+            <form action="/admin/register-first-admin" method="POST">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <button type="submit">Create Admin</button>
+            </form>
+        `);
     } catch (err) {
-        console.error(err);
-        req.flash('error', 'Error deleting questions.');
-        res.redirect('/admin/dashboard');
+        res.send("Error checking admin status");
     }
 });
 
-// Delete All Questions (Sab delete)
-router.post('/delete-all', checkAuth, async (req, res) => {
+router.post('/register-first-admin', async (req, res) => {
     try {
-        await Question.deleteMany({});
-        req.flash('success', 'All questions have been deleted.');
-        res.redirect('/admin/dashboard');
+        const count = await Admin.countDocuments();
+        if (count > 0) return res.status(403).send("Admin already exists");
+
+        const { username, password } = req.body;
+        const newAdmin = new Admin({ username, password });
+        await newAdmin.save();
+        
+        res.send("Admin created! <a href='/admin/login'>Go to Login</a>");
     } catch (err) {
-        console.error(err);
-        req.flash('error', 'Error deleting all questions.');
-        res.redirect('/admin/dashboard');
+        res.send("Error creating admin: " + err.message);
     }
 });
 
