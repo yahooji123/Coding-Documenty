@@ -171,41 +171,80 @@ router.delete('/delete/:id', isAuthenticated, async (req, res) => {
 });
 
 // =========================================================
-// 3. SPECIAL: FIRST ADMIN SETUP (Auto-disable after use)
+// 3. ADMIN MANAGEMENT
 // =========================================================
-router.get('/register-first-admin', async (req, res) => {
+
+// GET First-Time Signup Page
+router.get('/signup', async (req, res) => {
     try {
         const count = await Admin.countDocuments();
         if (count > 0) {
-            req.flash('error', 'Admin already exists. Please login.');
+            req.flash('error', 'Admin initialization already complete. Please log in.');
             return res.redirect('/admin/login');
         }
-        // If no admin, allow quick create
-        res.send(`
-            <h1>Create First Admin</h1>
-            <form action="/admin/register-first-admin" method="POST">
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
-                <button type="submit">Create Admin</button>
-            </form>
-        `);
+        res.render('admin/signup', { title: 'First Admin Signup' });
     } catch (err) {
-        res.send("Error checking admin status");
+        console.error(err);
+        res.status(500).send("Server Error");
     }
 });
 
-router.post('/register-first-admin', async (req, res) => {
+// POST First-Time Signup
+router.post('/signup', async (req, res) => {
     try {
         const count = await Admin.countDocuments();
-        if (count > 0) return res.status(403).send("Admin already exists");
+        if (count > 0) {
+            req.flash('error', 'Admin already exists.');
+            return res.redirect('/admin/login');
+        }
 
-        const { username, password } = req.body;
-        const newAdmin = new Admin({ username, password });
+        const { secretKey, fullName, email, username, password } = req.body;
+
+        if (secretKey !== 'admin@123') {
+            req.flash('error', 'Invalid Secret Key! Access Denied.');
+            return res.redirect('/admin/signup');
+        }
+
+        const newAdmin = new Admin({ fullName, email, username, password });
         await newAdmin.save();
-        
-        res.send("Admin created! <a href='/admin/login'>Go to Login</a>");
+
+        req.flash('success', 'Admin account created successfully! Please log in.');
+        res.redirect('/admin/login');
+
     } catch (err) {
-        res.send("Error creating admin: " + err.message);
+        console.error(err);
+        req.flash('error', 'Error creating admin: ' + err.message);
+        res.redirect('/admin/signup');
+    }
+});
+
+// GET Create Admin (Internal - Protected)
+router.get('/create-admin', isAuthenticated, (req, res) => {
+    res.render('admin/create-admin', { title: 'Create New Admin' });
+});
+
+// POST Create Admin (Internal - Protected)
+router.post('/create-admin', isAuthenticated, async (req, res) => {
+    try {
+        const { fullName, email, username, password } = req.body;
+        
+        // Simple validation check
+        const existingUser = await Admin.findOne({ $or: [{ username }, { email }] });
+        if (existingUser) {
+            req.flash('error', 'Username or Email already exists.');
+            return res.render('admin/create-admin', { title: 'Create New Admin', error: 'Username or Email already exists.' });
+        }
+
+        const newAdmin = new Admin({ fullName, email, username, password });
+        await newAdmin.save();
+
+        req.flash('success', 'New admin added successfully!');
+        res.redirect('/admin/dashboard');
+
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Error creating admin.');
+        res.redirect('/admin/create-admin');
     }
 });
 
