@@ -8,20 +8,20 @@ const createAdmin = async () => {
         console.log('✅ Connected to MongoDB');
 
         // Check if admin already exists
-        const existingAdmin = await Admin.findOne({ email: 'admin@example.com' });
+        const existingAdmin = await Admin.findOne({ username: 'admin' });
         if (existingAdmin) {
-            console.log('⚠️ Admin already exists: admin@example.com');
+            console.log('⚠️ Admin already exists: admin');
             process.exit(0);
         }
 
         const newAdmin = new Admin({
-            email: 'admin@example.com',
+            username: 'admin',
             password: 'adminpassword123' // Yeh script run hone par hash ho jayega
         });
 
         await newAdmin.save();
         console.log('✅ Admin Created Successfully');
-        console.log('Email: admin@example.com');
+        console.log('Username: admin');
         console.log('Password: adminpassword123');
         process.exit(0);
     } catch (err) {
